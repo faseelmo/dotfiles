@@ -1,0 +1,12 @@
+{
+    "workbench.sideBar.location": "right",
+    "workbench.iconTheme": "vs-nomo-dark",
+    "editor.minimap.enabled": false,
+    "editor.semanticHighlighting.enabled": true,
+    "basedpyright.analysis.diagnosticSeverityOverrides": {
+        "reportUnknownVariableType": "none",
+        "reportUnknownParameterType": "none",
+        "reportUnknownArgumentType": "none",
+        "reportMissingTypeStubs": "none",
+    }
+}

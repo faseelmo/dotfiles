@@ -1,0 +1,54 @@
+# ~/.bashrc - Clean & Minimal
+
+# Return early if not running interactively
+case $- in
+    *i*) ;;
+      *) return;;
+esac
+
+# History configurations
+shopt -s histappend
+shopt -s checkwinsize
+HISTCONTROL=ignoreboth
+HISTSIZE=5000
+HISTFILESIZE=10000
+
+# Color definitions
+GREEN="\[\033[01;32m\]"
+BLUE="\[\033[01;34m\]"
+YELLOW="\[\033[01;33m\]"
+NO_COLOR="\[\033[00m\]"
+
+# Git branch parser for PS1
+parse_git_branch() {
+    git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/(\1)/'
+}
+
+# Terminal Prompt
+PS1="$GREEN\u$NO_COLOR:$BLUE\w$YELLOW\$(parse_git_branch)$NO_COLOR\$\n"
+
+# Aliases
+alias ls='ls --color=auto'
+alias ll='ls -alF'
+alias la='ls -A'
+alias l='ls -CF'
+alias grep='grep --color=auto'
+alias code='codium'
+
+# Custom Functions / Extra Aliases File
+[ -f ~/.bash_aliases ] && . ~/.bash_aliases
+
+# Enable Bash Completion
+if ! shopt -oq posix; then
+    [ -f /usr/share/bash-completion/bash_completion ] && . /usr/share/bash-completion/bash_completion
+fi
+
+# Tool Integrations
+
+# Rust & ESP
+[ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
+[ -f "$HOME/export-esp.sh" ] && . "$HOME/export-esp.sh"
+
+# Pixi
+export PATH="$HOME/.pixi/bin:$PATH"
+eval "$(pixi completion --shell bash)"
