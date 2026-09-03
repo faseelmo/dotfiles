@@ -3,7 +3,7 @@ local config = wezterm.config_builder()
 
 -- Font setup
 config.font = wezterm.font('JetBrains Mono')
-config.font_size = 12.0
+config.font_size = 20.0
 
 -- Color scheme
 config.color_scheme = 'Tokyo Night'
@@ -53,5 +53,14 @@ config.keys = {
     action = wezterm.action.ActivatePaneDirection 'Down',
   },
 }
+
+-- AUTOMATED TAB SWITCHING (Alt + 1 through Alt + 9)
+for i = 1, 9 do
+  table.insert(config.keys, {
+    key = tostring(i),
+    mods = 'ALT',
+    action = wezterm.action.ActivateTab(i - 1), -- Subtract 1 because Lua is 1-indexed and WezTerm tabs are 0-indexed
+  })
+end
 
 return config

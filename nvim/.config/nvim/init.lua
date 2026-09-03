@@ -25,7 +25,7 @@ vim.opt.hlsearch = true -- highlight search matches
 vim.opt.incsearch = true -- show matches as you type
 
 vim.opt.signcolumn = "yes" -- always show a sign column
-vim.opt.colorcolumn = "120" -- show a column at 100 position chars
+-- vim.opt.colorcolumn = "120" -- show a column at 100 position chars
 vim.opt.showmatch = true -- highlights matching brackets
 vim.opt.cmdheight = 1 -- single line command line
 vim.opt.completeopt = "menuone,noinsert,noselect" -- completion options
@@ -270,8 +270,14 @@ vim.api.nvim_create_autocmd("FileType", {
 -- ============================================================================
 vim.pack.add({
   "https://www.github.com/nvim-tree/nvim-web-devicons",
+  "https://www.github.com/iamcco/markdown-preview.nvim",
+	"https://www.github.com/ibhagwan/fzf-lua",
 	"https://www.github.com/nvim-tree/nvim-tree.lua",
-  "https://www.github.com/3rd/image.nvim", 
+	{
+		src = "https://github.com/nvim-treesitter/nvim-treesitter",
+		branch = "main",
+		build = ":TSUpdate",
+	},
 })
 
 -- ============================================================================
@@ -295,24 +301,180 @@ vim.keymap.set("n", "<leader>e", function()
 	require("nvim-tree.api").tree.toggle()
 end, { desc = "Toggle NvimTree" })
 
--- Image 
-require("image").setup({
-  backend = "kitty",
-  integrations = {
-    markdown = {
-      enabled = true,
-      clear_in_insert_mode = true,          -- Hide image when typing
-      download_remote_images = true,
-      only_render_image_at_cursor = true,  -- FIX: Renders image ONLY when cursor is on the markdown link
-      filetypes = { "markdown", "vimwiki" },
-    },
-  },
-  max_width = 80,                             -- Constrain max width to fit window
-  max_height = 20,                            -- Constrain max height
-  max_height_window_percentage = 40,
-  window_overlap_clear_enabled = true,        -- FIX: Clears image when text or splits overlap
-  editor_only_render_when_focused = true,     -- Hide image if terminal loses focus
-  hijack_file_patterns = { "*.png", "*.jpg", "*.jpeg", "*.gif", "*.webp" },
-})
+-- Tree Sitter 
+local setup_treesitter = function()
+	local treesitter = require("nvim-treesitter")
+	treesitter.setup({})
+	local ensure_installed = {
+		"vim",
+		"vimdoc",
+		"rust",
+		"c",
+		"cpp",
+		"c_sharp",
+		"go",
+		"html",
+		"css",
+		"javascript",
+		"json",
+		"lua",
+		"markdown",
+		"python",
+		"typescript",
+		"vue",
+		"svelte",
+		"bash",
+    "dockerfile", 
+    "cmake", 
+    "toml", 
+    "xml"
+	}
 
+	local config = require("nvim-treesitter.config")
+
+	local already_installed = config.get_installed()
+	local parsers_to_install = {}
+
+	for _, parser in ipairs(ensure_installed) do
+		if not vim.tbl_contains(already_installed, parser) then
+			table.insert(parsers_to_install, parser)
+		end
+	end
+
+	if #parsers_to_install > 0 then
+		treesitter.install(parsers_to_install)
+	end
+
+	local group = vim.api.nvim_create_augroup("TreeSitterConfig", { clear = true })
+	vim.api.nvim_create_autocmd("FileType", {
+		group = group,
+		callback = function(args)
+			if vim.list_contains(config.get_installed(), vim.treesitter.language.get_lang(args.match)) then
+				vim.treesitter.start(args.buf)
+			end
+		end,
+	})
+end
+
+setup_treesitter()
+
+-- Fuzzy Find 
+require("fzf-lua").setup({})
+
+vim.keymap.set("n", "<leader>ff", function()
+	require("fzf-lua").files()
+end, { desc = "FZF Files" })
+vim.keymap.set("n", "<leader>fg", function()
+	require("fzf-lua").live_grep()
+end, { desc = "FZF Live Grep" })
+vim.keymap.set("n", "<leader>fb", function()
+	require("fzf-lua").buffers()
+end, { desc = "FZF Buffers" })
+vim.keymap.set("n", "<leader>fh", function()
+	require("fzf-lua").help_tags()
+end, { desc = "FZF Help Tags" })
+vim.keymap.set("n", "<leader>fx", function()
+	require("fzf-lua").diagnostics_document()
+end, { desc = "FZF Diagnostics Document" })
+vim.keymap.set("n", "<leader>fX", function()
+	require("fzf-lua").diagnostics_workspace()
+end, { desc = "FZF Diagnostics Workspace" })
+
+
+
+
+
+
+-- ============================================================================
+-- FLOATING TERMINAL
+-- ============================================================================
+
+-- terminal
+local terminal_state = {
+  buf = nil,
+  win = nil,
+  is_open = false
+}
+
+local function FloatingTerminal()
+  -- If terminal is already open, close it (toggle behavior)
+  if terminal_state.is_open and vim.api.nvim_win_is_valid(terminal_state.win) then
+    vim.api.nvim_win_close(terminal_state.win, false)
+    terminal_state.is_open = false
+    return
+  end
+
+  -- Create buffer if it doesn't exist or is invalid
+  if not terminal_state.buf or not vim.api.nvim_buf_is_valid(terminal_state.buf) then
+    terminal_state.buf = vim.api.nvim_create_buf(false, true)
+    -- Set buffer options for better terminal experience
+    vim.bo[terminal_state.buf].bufhidden = 'hide'
+  end
+
+  -- Calculate window dimensions
+  local width = math.floor(vim.o.columns * 0.8)
+  local height = math.floor(vim.o.lines * 0.8)
+  local row = math.floor((vim.o.lines - height) / 2)
+  local col = math.floor((vim.o.columns - width) / 2)
+
+  -- Create the floating window
+  terminal_state.win = vim.api.nvim_open_win(terminal_state.buf, true, {
+    relative = 'editor',
+    width = width,
+    height = height,
+    row = row,
+    col = col,
+    style = 'minimal',
+    border = 'rounded',
+  })
+
+  -- Set transparency for the floating window
+  vim.wo[terminal_state.win].winblend = 0
+  vim.wo[terminal_state.win].winhighlight = 'Normal:FloatingTermNormal,FloatBorder:FloatingTermBorder'
+
+  -- Define highlight groups for transparency
+  vim.api.nvim_set_hl(0, "FloatingTermNormal", { bg = "none" })
+  vim.api.nvim_set_hl(0, "FloatingTermBorder", { bg = "none", })
+
+  -- Start terminal if not already running
+  local has_terminal = false
+  local lines = vim.api.nvim_buf_get_lines(terminal_state.buf, 0, -1, false)
+  for _, line in ipairs(lines) do
+    if line ~= "" then
+      has_terminal = true
+      break
+    end
+  end
+
+  if not has_terminal then
+    vim.fn.termopen(os.getenv("SHELL"))
+  end
+
+  terminal_state.is_open = true
+  vim.cmd("startinsert")
+
+  -- Set up auto-close on buffer leave 
+  vim.api.nvim_create_autocmd("BufLeave", {
+    buffer = terminal_state.buf,
+    callback = function()
+      if terminal_state.is_open and vim.api.nvim_win_is_valid(terminal_state.win) then
+        vim.api.nvim_win_close(terminal_state.win, false)
+        terminal_state.is_open = false
+      end
+    end,
+    once = true
+  })
+end
+
+-- Function to explicitly close the terminal
+local function CloseFloatingTerminal()
+  if terminal_state.is_open and vim.api.nvim_win_is_valid(terminal_state.win) then
+    vim.api.nvim_win_close(terminal_state.win, false)
+    terminal_state.is_open = false
+  end
+end
+
+-- Key mappings
+vim.keymap.set("n", "<leader>t", FloatingTerminal, { noremap = true, silent = true, desc = "Toggle floating terminal" })
+vim.keymap.set("t", "<Esc>", CloseFloatingTerminal, { noremap = true, silent = true, desc = "Close floating terminal from terminal mode" })
 
