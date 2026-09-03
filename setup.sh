@@ -10,6 +10,7 @@ stow --dotfiles git
 stow --dotfiles bash
 stow vscodium
 stow nvim
+stow wezterm
 
 echo "==> Configuring global Git settings..."
 git config --global core.excludesfile "$HOME/.gitignore"
