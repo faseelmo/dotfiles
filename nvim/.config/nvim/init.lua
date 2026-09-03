@@ -271,8 +271,14 @@ vim.api.nvim_create_autocmd("FileType", {
 vim.pack.add({
   "https://www.github.com/nvim-tree/nvim-web-devicons",
 	"https://www.github.com/nvim-tree/nvim-tree.lua",
+  "https://www.github.com/3rd/image.nvim", 
 })
 
+-- ============================================================================
+-- PLUGIN CONFIGS
+-- ============================================================================
+
+-- Nvim Tree 
 require("nvim-tree").setup({
 	view = {
 		width = 35,
@@ -289,7 +295,24 @@ vim.keymap.set("n", "<leader>e", function()
 	require("nvim-tree.api").tree.toggle()
 end, { desc = "Toggle NvimTree" })
 
--- ============================================================================
--- PLUGIN CONFIGS
--- ============================================================================
+-- Image 
+require("image").setup({
+  backend = "kitty",
+  integrations = {
+    markdown = {
+      enabled = true,
+      clear_in_insert_mode = true,          -- Hide image when typing
+      download_remote_images = true,
+      only_render_image_at_cursor = true,  -- FIX: Renders image ONLY when cursor is on the markdown link
+      filetypes = { "markdown", "vimwiki" },
+    },
+  },
+  max_width = 80,                             -- Constrain max width to fit window
+  max_height = 20,                            -- Constrain max height
+  max_height_window_percentage = 40,
+  window_overlap_clear_enabled = true,        -- FIX: Clears image when text or splits overlap
+  editor_only_render_when_focused = true,     -- Hide image if terminal loses focus
+  hijack_file_patterns = { "*.png", "*.jpg", "*.jpeg", "*.gif", "*.webp" },
+})
+
 
