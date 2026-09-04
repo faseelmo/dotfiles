@@ -1,18 +1,38 @@
 require("nvim-tree").setup({
-    view = {
-        width = 35,
-        side = "right", 
+  view = {
+    width = 35,
+    side = "right",
+  },
+  filters = {
+    dotfiles = false,
+  },
+  renderer = {
+    group_empty = true,
+  },
+  actions = {
+    open_file = {
+      resize_window = true,
     },
-    filters = {
-        dotfiles = false,
-    },
-    renderer = {
-        group_empty = true,
-    },
+  },
+  on_attach = function(bufnr)
+    local api = require("nvim-tree.api")
+
+    -- Load default nvim-tree keymaps
+    api.config.mappings.default_on_attach(bufnr)
+
+    -- Custom API-based resize shortcuts (press > or < while focused on NvimTree)
+    vim.keymap.set("n", "<", function()
+      api.tree.resize({ relative = 5 })
+    end, { buffer = bufnr, desc = "Increase tree width" })
+
+    vim.keymap.set("n", ">", function()
+      api.tree.resize({ relative = -5 })
+    end, { buffer = bufnr, desc = "Decrease tree width" })
+  end,
 })
 
 vim.keymap.set("n", "<leader>e", function()
-    require("nvim-tree.api").tree.toggle()
+  require("nvim-tree.api").tree.toggle()
 end, { desc = "Toggle NvimTree" })
 
 -- Theme Overrides for NvimTree background dimming
