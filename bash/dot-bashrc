@@ -52,3 +52,16 @@ fi
 # Pixi
 export PATH="$HOME/.pixi/bin:$PATH"
 eval "$(pixi completion --shell bash)"
+
+# -- ROS2 Clang & Neovim colcon integration 
+export CC=clang
+export CXX=clang++
+
+# Build using standard build/ and install/ directories
+export BUILD_ARGS="--symlink-install --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+
+# Alias to build packages with compile_commands enabled
+alias cb="colcon build ${BUILD_ARGS}"
+
+# Alias to link compile_commands.json to your workspace root for Neovim
+alias link-cc="ln -sf \${PWD}/build/compile_commands.json \${PWD}/compile_commands.json && echo 'Linked workspace compile_commands.json!'"
