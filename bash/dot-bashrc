@@ -63,5 +63,11 @@ export BUILD_ARGS="--symlink-install --cmake-args -DCMAKE_EXPORT_COMPILE_COMMAND
 # Alias to build packages with compile_commands enabled
 alias cb="colcon build ${BUILD_ARGS}"
 
-# Alias to link compile_commands.json to your workspace root for Neovim
-alias link-cc="ln -sf \${PWD}/build/compile_commands.json \${PWD}/compile_commands.json && echo 'Linked workspace compile_commands.json!'"
+# Build packages AND compile test targets
+alias cbt="cb --cmake-args -DBUILD_TESTING=ON"
+
+# Run tests and immediately display test results
+# - Function to run colcon test with any arguments and display results
+ct() {
+    colcon test "$@" && colcon test-result --all
+}
