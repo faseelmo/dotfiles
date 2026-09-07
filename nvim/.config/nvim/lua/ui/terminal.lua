@@ -35,7 +35,7 @@ local function FloatingTerminal()
   vim.wo[terminal_state.win].winhighlight = 'Normal:FloatingTermNormal,FloatBorder:FloatingTermBorder'
 
   vim.api.nvim_set_hl(0, "FloatingTermNormal", { bg = "none" })
-  vim.api.nvim_set_hl(0, "FloatingTermBorder", { bg = "none", })
+  vim.api.nvim_set_hl(0, "FloatingTermBorder", { bg = "none" })
 
   local has_terminal = false
   local lines = vim.api.nvim_buf_get_lines(terminal_state.buf, 0, -1, false)
@@ -47,13 +47,13 @@ local function FloatingTerminal()
   end
 
   if not has_terminal then
-    vim.fn.termopen(os.getenv("SHELL"))
+    vim.cmd.terminal(os.getenv("SHELL"))
   end
 
   terminal_state.is_open = true
   vim.cmd("startinsert")
 
-  -- Clean up state if the user manually closes the buffer
+  -- Clean up state if the user manually leaves the buffer
   vim.api.nvim_create_autocmd("BufLeave", {
     buffer = terminal_state.buf,
     callback = function()
@@ -62,17 +62,9 @@ local function FloatingTerminal()
         terminal_state.is_open = false
       end
     end,
-    once = false -- Fixed: allowing it to trigger multiple times if terminal is re-opened
+    once = false
   })
 end
 
-local function CloseFloatingTerminal()
-  if terminal_state.is_open and vim.api.nvim_win_is_valid(terminal_state.win) then
-    vim.api.nvim_win_close(terminal_state.win, false)
-    terminal_state.is_open = false
-  end
-end
-
-vim.keymap.set("n", "<leader>t", FloatingTerminal, { noremap = true, silent = true, desc = "Toggle floating terminal" })
-
-vim.keymap.set("t", "<Esc><Esc>", CloseFloatingTerminal, { noremap = true, silent = true, desc = "Close floating terminal from terminal mode" })
+-- Keymaps: Register in both Normal ("n") and Terminal ("t") modes
+vim.keymap.set({ "n", "t" }, "<leader>t", FloatingTerminal, { noremap = true, silent = true, desc = "Toggle floating terminal" })

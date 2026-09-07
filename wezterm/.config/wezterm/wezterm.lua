@@ -8,10 +8,16 @@ config.font_size = 20.0
 -- Color scheme
 config.color_scheme = 'Tokyo Night'
 
--- Window opacity (0.0 = transparent, 1.0 = opaque)
-config.window_background_opacity = 0.90
+-- Window
+config.window_background_opacity = 0.90  -- (0.0 = transparent, 1.0 = opaque)
+config.window_padding = {
+  left = 0,
+  right = 0,
+  top = 0,
+  bottom = 0,
+}
 
--- Key bindings -- 
+-- Key bindings --
 config.keys = {
   -- Split Right / Vertically (Terminator: Ctrl + Shift + E)
   {
@@ -31,7 +37,7 @@ config.keys = {
     mods = 'CTRL|SHIFT',
     action = wezterm.action.CloseCurrentPane { confirm = true },
   },
-  -- Pane Navigation 
+  -- Pane Navigation
   {
     key = 'LeftArrow',
     mods = 'ALT',
