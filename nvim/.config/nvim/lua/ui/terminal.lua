@@ -66,5 +66,8 @@ local function FloatingTerminal()
   })
 end
 
--- Keymaps: Register in both Normal ("n") and Terminal ("t") modes
-vim.keymap.set({ "n", "t" }, "<leader>t", FloatingTerminal, { noremap = true, silent = true, desc = "Toggle floating terminal" })
+-- Toggle terminal from Normal mode only
+vim.keymap.set("n", "<leader>t", FloatingTerminal, { noremap = true, silent = true, desc = "Toggle Floating Terminal" })
+
+-- Double Escape to exit Terminal Mode and enter Normal Mode
+vim.keymap.set("t", "<Esc><Esc>", "<C-\\><C-n>", { noremap = true, silent = true, desc = "Enter Normal Mode in Terminal" })

@@ -54,6 +54,7 @@ export PATH="$HOME/.pixi/bin:$PATH"
 eval "$(pixi completion --shell bash)"
 
 # -- ROS2 Clang & Neovim colcon integration 
+# source: https://www.reddit.com/r/ROS/comments/15yr1zm/comment/jxdvocp/?utm_source=share&utm_medium=web3x&utm_name=web3xcss&utm_term=1&utm_content=share_button
 export CC=clang
 export CXX=clang++
 
@@ -69,5 +70,9 @@ alias cbt="cb --cmake-args -DBUILD_TESTING=ON"
 # Run tests and immediately display test results
 # - Function to run colcon test with any arguments and display results
 ct() {
-    colcon test "$@" && colcon test-result --all
+    # 1. Run tests quietly (no console event handlers)
+    colcon test "$@"
+    
+    # 2. Print a summary, and print the output logs ONLY for tests that failed
+    colcon test-result --verbose
 }
