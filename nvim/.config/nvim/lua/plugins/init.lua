@@ -5,7 +5,6 @@ vim.pack.add({
 	"https://www.github.com/nvim-tree/nvim-tree.lua",
 	{
 		src = "https://github.com/nvim-treesitter/nvim-treesitter",
-		branch = "main",
 		build = ":TSUpdate",
 	},
 	"https://www.github.com/neovim/nvim-lspconfig",

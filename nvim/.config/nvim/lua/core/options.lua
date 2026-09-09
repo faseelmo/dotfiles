@@ -7,7 +7,7 @@ vim.opt.number = true
 vim.opt.relativenumber = true
 vim.opt.cursorline = true
 vim.opt.wrap = false
-vim.opt.scrolloff = 10
+vim.opt.scrolloff = 10 -- keep 10 lines above/below curson when scrolling
 vim.opt.sidescrolloff = 10
 
 vim.opt.tabstop = 2
@@ -19,15 +19,13 @@ vim.opt.autoindent = true
 
 vim.opt.ignorecase = true
 vim.opt.smartcase = true
-vim.opt.hlsearch = true
-vim.opt.incsearch = true
+vim.opt.hlsearch = true -- highlight search matches
+vim.opt.incsearch = true -- show matches as you type 
 
-vim.opt.signcolumn = "yes"
-vim.opt.showmatch = true
+vim.opt.showmatch = true -- highlight matching brackets 
 vim.opt.cmdheight = 1
-vim.opt.completeopt = "menuone,noinsert,noselect"
-vim.opt.showmode = false
-vim.opt.laststatus = 2
+vim.opt.completeopt = "menuone,noinsert,noselect" -- completion options   
+vim.opt.showmode = false -- do not show the mode, instead have it in status line 
 vim.opt.pumheight = 10
 vim.opt.pumblend = 10
 vim.opt.winblend = 0
@@ -36,15 +34,17 @@ vim.opt.concealcursor = ""
 vim.opt.synmaxcol = 300
 vim.opt.fillchars = { eob = " " }
 
+-- Able to undo (even undoing things after you close the file) 
 local undodir = vim.fn.expand("~/.vim/undodir")
 if vim.fn.isdirectory(undodir) == 0 then
-    vim.fn.mkdir(undodir, "p")
+  -- create undodir if non existent
+	vim.fn.mkdir(undodir, "p")
 end
 
 vim.opt.backup = false
 vim.opt.writebackup = false
 vim.opt.swapfile = false
-vim.opt.undofile = true
+vim.opt.undofile = true -- do create an undo file 
 vim.opt.undodir = undodir
 vim.opt.updatetime = 300
 vim.opt.timeoutlen = 500
@@ -54,16 +54,18 @@ vim.opt.autowrite = false
 
 vim.opt.hidden = true
 vim.opt.errorbells = false
-vim.opt.backspace = "indent,eol,start"
-vim.opt.autochdir = false
-vim.opt.iskeyword:append("-")
-vim.opt.path:append("**")
-vim.opt.selection = "inclusive"
-vim.opt.mouse = "a"
+vim.opt.backspace = "indent,eol,start" -- better backspace behavior 
+vim.opt.autochdir = false -- do not autochange dirs 
+vim.opt.iskeyword:append("-") -- include - in words 
+vim.opt.path:append("**") -- include subdirs in search 
+vim.opt.selection = "inclusive" -- include last char in selection 
+vim.opt.mouse = "a" -- enable mouse support 
 -- vim.opt.clipboard:append("unnamedplus") -- copying to system clipboard
-vim.opt.modifiable = true
+vim.opt.modifiable = true -- allow buffer modification 
 
-vim.opt.guicursor = "n-v-c:block,i-ci-ve:ver25,r-cr:hor20,o:hor50,a:blinkwait700-blinkoff400-blinkon250-Cursor/lCursor,sm:block-blinkwait175-blinkoff150-blinkon175"
+-- custom cursor 
+vim.opt.guicursor =
+	"n-v-c:block,i-ci-ve:ver25,r-cr:hor20,o:hor50,a:blinkwait700-blinkoff400-blinkon250-Cursor/lCursor,sm:block-blinkwait175-blinkoff150-blinkon175"
 
 -- Folding
 vim.opt.foldmethod = "expr"

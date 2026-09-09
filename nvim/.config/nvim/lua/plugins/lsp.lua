@@ -1,11 +1,11 @@
--------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------
 -- 1. DIAGNOSTICS & UI CONFIGURATION
 -------------------------------------------------------------------------------
 local diagnostic_signs = {
-    Error = "\u{f057} ", -- 
-    Warn = "\u{f071} ", -- 
-    Hint = "\u{ea61}", -- 󰌵
-    Info = "\u{f05a}", -- 
+    Error = " ",
+    Warn = " ",
+    Hint = "󰌵",
+    Info = " ",
 }
 
 vim.diagnostic.config({
@@ -38,7 +38,8 @@ vim.opt.updatetime = 250
 vim.api.nvim_create_autocmd("CursorHold", {
     group = vim.api.nvim_create_augroup("DiagnosticFloat", { clear = true }),
     callback = function()
-        vim.diagnostic.open_float(nil, {
+        -- 0.10+ Native API (no 'nil' arg needed)
+        vim.diagnostic.open_float({
             focus = false,
             border = "rounded",
         })
@@ -51,32 +52,40 @@ vim.api.nvim_create_autocmd("CursorHold", {
 vim.api.nvim_create_autocmd("LspAttach", {
     group = vim.api.nvim_create_augroup("UserLspConfig", {}),
     callback = function(ev)
-        local opts = { buffer = ev.buf }
+        local client = vim.lsp.get_client_by_id(ev.data.client_id)
+
+        -- Prevent duplicate formatting!
+        -- Let efm handle Lua, let Ruff handle Python
+        if client and (client.name == "lua_ls" or client.name == "basedpyright") then
+            client.server_capabilities.documentFormattingProvider = false
+            client.server_capabilities.documentRangeFormattingProvider = false
+        end
+
+        -- Helper to easily set keymaps with descriptions
+        local function map(mode, lhs, rhs, desc)
+            vim.keymap.set(mode, lhs, rhs, { buffer = ev.buf, desc = desc })
+        end
 
         -- Hover documentation (0.12 Native Border Option)
-        vim.keymap.set("n", "K", function()
-            vim.lsp.buf.hover({ border = "rounded" })
-        end, opts)
+        map("n", "K", function() vim.lsp.buf.hover({ border = "rounded" }) end, "Hover Documentation")
 
         -- Signature help
-        vim.keymap.set("n", "<C-k>", function()
-            vim.lsp.buf.signature_help({ border = "rounded" })
-        end, opts)
+        map("n", "<C-k>", function() vim.lsp.buf.signature_help({ border = "rounded" }) end, "Signature Help")
 
         -- Code definitions & references
-        vim.keymap.set("n", "gd", vim.lsp.buf.definition, opts)
-        vim.keymap.set("n", "gD", vim.lsp.buf.declaration, opts)
-        vim.keymap.set("n", "gr", vim.lsp.buf.references, opts)
-        vim.keymap.set("n", "gi", vim.lsp.buf.implementation, opts)
+        map("n", "gd", vim.lsp.buf.definition, "Go to Definition")
+        map("n", "gD", vim.lsp.buf.declaration, "Go to Declaration")
+        map("n", "gr", vim.lsp.buf.references, "Find References")
+        map("n", "gi", vim.lsp.buf.implementation, "Go to Implementation")
 
         -- Code actions & renaming
-        vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, opts)
-        vim.keymap.set("n", "<leader>ca", vim.lsp.buf.code_action, opts)
+        map("n", "<leader>rn", vim.lsp.buf.rename, "Rename Symbol")
+        map("n", "<leader>ca", vim.lsp.buf.code_action, "Code Action")
 
         -- Code formatting
-        vim.keymap.set("n", "<leader>f", function()
+        map("n", "<leader>f", function()
             vim.lsp.buf.format({ async = true })
-        end, opts)
+        end, "Format Document")
     end,
 })
 
@@ -108,11 +117,35 @@ vim.lsp.config["clangd"] = {
     },
 }
 
+vim.lsp.config["basedpyright"] = {
+    settings = {
+        basedpyright = {
+            analysis = {
+                typeCheckingMode = "standard",
+                -- Disable diagnostics that Ruff handles better
+                diagnosticSeverityOverrides = {
+                    reportUnusedImport = "none",
+                    reportUnusedVariable = "none",
+                },
+            },
+        },
+    },
+}
+
+vim.lsp.config["rust_analyzer"] = {
+    settings = {
+        ["rust-analyzer"] = {
+            check = { command = "clippy" },
+        },
+    },
+}
+
 -- Setup mason-lspconfig using automatic handlers
 require("mason-lspconfig").setup({
+    -- Removed "stylua" as it's a formatter, not an LSP
     ensure_installed = {
         "clangd", "rust_analyzer", "basedpyright", "lua_ls", 
-        "taplo", "marksman", "lemminx", "efm", "ruff", "stylua",
+        "taplo", "marksman", "lemminx", "efm", "ruff"
     },
     handlers = {
         function(server_name)
@@ -130,21 +163,10 @@ require("mason-lspconfig").setup({
     },
 })
 
--- Rust
-vim.lsp.config["rust_analyzer"] = {
-    settings = {
-        ["rust-analyzer"] = {
-            check = { command = "clippy" },
-        },
-    },
-}
-
 -------------------------------------------------------------------------------
 -- 4. EFMLS CONFIGURATION (LINTING & FORMATTING)
 -------------------------------------------------------------------------------
 local clang_format = require("efmls-configs.formatters.clang_format")
-local ruff_format = require("efmls-configs.formatters.ruff")
-local ruff_lint = require("efmls-configs.linters.ruff")
 local stylua = require("efmls-configs.formatters.stylua")
 local shellcheck = require("efmls-configs.linters.shellcheck")
 local shfmt = require("efmls-configs.formatters.shfmt")
@@ -152,7 +174,7 @@ local taplo = require("efmls-configs.formatters.taplo")
 local prettier = require("efmls-configs.formatters.prettier")
 
 local languages = {
-    python = { ruff_lint, ruff_format },
+    -- Python removed: handled natively by Ruff LSP now
     lua = { stylua },
     bash = { shellcheck, shfmt },
     sh = { shellcheck, shfmt },
@@ -177,7 +199,7 @@ vim.lsp.config["efm"] = {
 local cmp = require("cmp")
 
 cmp.setup({
-    -- Leverage Neovim 0.10+ native snippet engine (no need for LuaSnip!)
+    -- Leverage Neovim 0.10+ native snippet engine
     snippet = {
         expand = function(args)
             vim.snippet.expand(args.body)
@@ -189,7 +211,7 @@ cmp.setup({
     },
     mapping = cmp.mapping.preset.insert({
         ["<C-Space>"] = cmp.mapping.complete(),
-        ["<CR>"] = cmp.mapping.confirm({ select = true }), -- Accept currently selected item.
+        ["<CR>"] = cmp.mapping.confirm({ select = true }),
         ["<Tab>"] = cmp.mapping(function(fallback)
             if cmp.visible() then
                 cmp.select_next_item()
@@ -207,6 +229,7 @@ cmp.setup({
     }),
     sources = cmp.config.sources({
         { name = "nvim_lsp" },
+        { name = "path" },
     }, {
         { name = "buffer" },
     }),
