@@ -2,7 +2,7 @@ vim.pack.add({
 	"https://www.github.com/nvim-tree/nvim-web-devicons",
 	"https://www.github.com/iamcco/markdown-preview.nvim",
 	"https://www.github.com/ibhagwan/fzf-lua",
-	"https://www.github.com/nvim-tree/nvim-tree.lua",
+	"https://github.com/stevearc/oil.nvim",
 	{
 		src = "https://github.com/nvim-treesitter/nvim-treesitter",
 		build = ":TSUpdate",
