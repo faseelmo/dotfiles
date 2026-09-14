@@ -11,7 +11,7 @@ vim.pack.add({
 	"https://github.com/mason-org/mason.nvim",
 	"https://github.com/williamboman/mason-lspconfig.nvim",
 	"https://github.com/creativenull/efmls-configs-nvim",
-
+	"https://github.com/MeanderingProgrammer/render-markdown.nvim",
 	-- Minimal Autocompletion Stack
 	"https://github.com/hrsh7th/nvim-cmp",
 	"https://github.com/hrsh7th/cmp-nvim-lsp",
