@@ -2,7 +2,7 @@ local wezterm = require 'wezterm'
 local config = wezterm.config_builder()
 
 -- Font setup
-config.font = wezterm.font('JetBrains Mono')
+config.font = wezterm.font('JetBrains Mono', {weight = 'Light'})
 config.font_size = 20.0
 
 -- Color scheme

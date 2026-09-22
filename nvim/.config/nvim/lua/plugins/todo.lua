@@ -74,8 +74,8 @@ vim.api.nvim_create_autocmd("BufEnter", {
 							-- Append creation tag to parent if missing
 							local task_content = string.match(block[1], "^%s*%- %[ %] (.*)")
 							if task_content and not string.match(task_content, "%(Created: %d%d%d%d%-%d%d%-%d%d%)") then
-								block[1] =
-									string.gsub(block[1], "(^%s*%- %[ %] .*)", "%1 (Created: " .. date_match .. ")")
+								-- Strips any trailing spaces/tabs, then appends the date cleanly
+								block[1] = string.gsub(block[1], "%s*$", "") .. " (Created: " .. date_match .. ")"
 							end
 
 							for _, bline in ipairs(block) do

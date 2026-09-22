@@ -13,8 +13,9 @@ require("ui.terminal")
 
 -- 3. Plugins & Plugin Configs
 require("plugins.init")
-require("plugins.oil")
 require("plugins.treesitter")
 require("plugins.fzf")
 require("plugins.lsp")
 require("plugins.todo")
+require("plugins.explorer")
+require("plugins.mini")
