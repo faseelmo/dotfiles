@@ -1,14 +1,15 @@
-require('fzf-lua').setup({
-  defaults = {
-    file_ignore_patterns = {
-      "build/",
-      "target/",
-      ".git/",
-      ".pixi/",
-      "typings/",
-      "__pycache__/"
-    },
-  },
+require("fzf-lua").setup({
+	defaults = {
+		file_ignore_patterns = {
+			"build/",
+			"target/",
+			".git/",
+			".pixi/",
+			"typings/",
+			"__pycache__/",
+			".cache/",
+		},
+	},
 })
 
 vim.keymap.set("n", "<leader>ff", function()

@@ -3,135 +3,236 @@ vim.api.nvim_create_autocmd("BufEnter", {
 	callback = function()
 		local buf = vim.api.nvim_get_current_buf()
 
-		vim.cmd([[syntax match Comment "(Created: \d\d\d\d-\d\d-\d\d)"]])
+		-- 1. Setup Tag Coloring
+		local palette = {
+			"#8be9fd",
+			"#50fa7b",
+			"#f1fa8c",
+			"#ffb86c",
+			"#ff5555",
+			"#ff79c6",
+			"#bd93f9",
+			"#8ae234",
+			"#729fcf",
+			"#ad7fa8",
+		}
 
+		local syntax_cmds = {
+			[[syntax match Comment "(Created: \d\d\d\d-\d\d-\d\d)"]],
+			[[syntax match TodoTag "@[a-zA-Z_]\w*"]],
+			[[highlight default TodoTag guibg=#bd93f9 guifg=#282a36 ctermbg=Magenta ctermfg=Black]],
+		}
+
+		for i = 0, 50 do
+			local color = palette[(i % #palette) + 1]
+			local group_name = "TodoTagNum" .. i
+			table.insert(syntax_cmds, string.format([[syntax match %s "@%d-[a-zA-Z0-9_-]\+"]], group_name, i))
+			table.insert(
+				syntax_cmds,
+				string.format(
+					[[highlight default %s guibg=%s guifg=#282a36 ctermbg=White ctermfg=Black]],
+					group_name,
+					color
+				)
+			)
+		end
+
+		vim.cmd(table.concat(syntax_cmds, "\n"))
+
+		-- 2. Run Auto-Rollover and Formatting
 		local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
 		local current_date = os.date("%Y-%m-%d")
 
-		local new_lines = {}
-		local unchecked_tasks = {}
-		local found_today = false
+		-- STEP A: Parse the entire document safely into Days
+		local parsed_days = {}
+		local current_day = nil
+		local preamble = {}
 
-		local i = 1
-		while i <= #lines do
-			local line = lines[i]
-			local date_match = string.match(line, "^# (%d%d%d%d%-%d%d%-%d%d)")
-
-			if date_match then
-				if date_match == current_date then
-					found_today = true
-				end
-
-				local section_header = line
-				local section_body = {}
-				local has_content = false
-
-				i = i + 1
-				while i <= #lines do
-					local next_line = lines[i]
-
-					if string.match(next_line, "^# %d%d%d%d%-%d%d%-%d%d") then
-						break
-					end
-
-					-- Check if this line starts a task block (checked or unchecked)
-					local is_task_start = string.match(next_line, "^%s*%- %[.%]")
-
-					if is_task_start and date_match ~= current_date then
-						-- Gather this entire task block (parent + all indented children/notes)
-						local block = { next_line }
-						local block_has_unchecked = string.match(next_line, "%- %[ %]") ~= nil
-
-						i = i + 1
-						while i <= #lines do
-							local child_line = lines[i]
-							local is_indented = string.match(child_line, "^%s+")
-							local is_blank = not string.match(child_line, "%S")
-							local is_next_task = string.match(child_line, "^%s*%- %[.%]")
-
-							if string.match(child_line, "^# %d%d%d%d%-%d%d%-%d%d") or is_next_task then
-								i = i - 1 -- step back so outer loop catches it
-								break
-							end
-
-							if is_indented or is_blank then
-								table.insert(block, child_line)
-								if string.match(child_line, "%- %[ %]") then
-									block_has_unchecked = true
-								end
-							else
-								i = i - 1
-								break
-							end
-							i = i + 1
-						end
-
-						-- If the block contains any unchecked item, it rolls over
-						if block_has_unchecked then
-							-- Ensure parent is unchecked (- [ ]) if it was marked checked
-							block[1] = string.gsub(block[1], "%- %[x%]", "- [ ]")
-
-							-- Append creation tag to parent if missing
-							local task_content = string.match(block[1], "^%s*%- %[ %] (.*)")
-							if task_content and not string.match(task_content, "%(Created: %d%d%d%d%-%d%d%-%d%d%)") then
-								-- Strips any trailing spaces/tabs, then appends the date cleanly
-								block[1] = string.gsub(block[1], "%s*$", "") .. " (Created: " .. date_match .. ")"
-							end
-
-							for _, bline in ipairs(block) do
-								table.insert(unchecked_tasks, bline)
-							end
-						else
-							-- Fully checked block stays in the old section
-							for _, bline in ipairs(block) do
-								table.insert(section_body, bline)
-								if string.match(bline, "%S") then
-									has_content = true
-								end
-							end
-						end
-					else
-						table.insert(section_body, next_line)
-						if string.match(next_line, "%S") then
-							has_content = true
-						end
-					end
-
-					i = i + 1
-				end
-
-				if has_content or date_match == current_date then
-					table.insert(new_lines, section_header)
-					for _, body_line in ipairs(section_body) do
-						table.insert(new_lines, body_line)
-					end
-				end
+		for _, line in ipairs(lines) do
+			-- Ignore existing standalone month headers so we can cleanly regenerate them dynamically
+			if string.match(line, "^# %d%d%d%d%-%d%d$") then
+				-- skip
 			else
-				table.insert(new_lines, line)
-				i = i + 1
+				-- STRICTLY match H2 dates now that migration is complete
+				local date_match = string.match(line, "^## (%d%d%d%d%-%d%d%-%d%d)")
+				if date_match then
+					current_day = { date = date_match, lines = {} }
+					table.insert(parsed_days, current_day)
+				else
+					if current_day then
+						table.insert(current_day.lines, line)
+					else
+						table.insert(preamble, line)
+					end
+				end
 			end
 		end
 
-		if found_today then
-			return
+		-- STEP B: Process Task Blocks and Rollover
+		local unchecked_tasks = {}
+		local final_days = {}
+
+		for _, day in ipairs(parsed_days) do
+			local is_today = (day.date == current_date)
+			local processed_lines = {}
+			local current_task_block = nil
+
+			-- Group day's lines into blocks (Task vs Normal Text)
+			for _, line in ipairs(day.lines) do
+				local is_top_task = string.match(line, "^%- %[.%]")
+				local is_indented = string.match(line, "^%s+")
+				local is_blank = not string.match(line, "%S")
+
+				if is_top_task then
+					if current_task_block then
+						table.insert(processed_lines, current_task_block)
+					end
+					current_task_block = { lines = { line }, has_unchecked = string.match(line, "^%- %[ %]") ~= nil }
+				elseif current_task_block and (is_indented or is_blank) then
+					table.insert(current_task_block.lines, line)
+					if string.match(line, "%- %[ %]") then
+						current_task_block.has_unchecked = true
+					end
+				else
+					if current_task_block then
+						table.insert(processed_lines, current_task_block)
+						current_task_block = nil
+					end
+					table.insert(processed_lines, { lines = { line }, is_normal = true })
+				end
+			end
+
+			if current_task_block then
+				table.insert(processed_lines, current_task_block)
+			end
+
+			-- Evaluate blocks
+			local day_content = {}
+			for _, block in ipairs(processed_lines) do
+				if block.is_normal or is_today then
+					for _, l in ipairs(block.lines) do
+						table.insert(day_content, l)
+					end
+				else
+					if block.has_unchecked then
+						-- Rollover logic
+						block.lines[1] = string.gsub(block.lines[1], "^%- %[x%]", "- [ ]")
+						local task_text = string.match(block.lines[1], "^%- %[ %] (.*)")
+						if task_text and not string.match(task_text, "%(Created: %d%d%d%d%-%d%d%-%d%d%)") then
+							block.lines[1] = string.gsub(block.lines[1], "%s*$", "") .. " (Created: " .. day.date .. ")"
+						end
+						for _, l in ipairs(block.lines) do
+							table.insert(unchecked_tasks, l)
+						end
+					else
+						for _, l in ipairs(block.lines) do
+							table.insert(day_content, l)
+						end
+					end
+				end
+			end
+
+			day.lines = day_content
+			table.insert(final_days, day)
 		end
 
-		while #new_lines > 0 and new_lines[#new_lines] == "" do
-			table.remove(new_lines)
+		-- STEP C: Rebuild the document
+		local new_lines = {}
+		for _, line in ipairs(preamble) do
+			table.insert(new_lines, line)
 		end
 
-		if #new_lines > 0 then
-			table.insert(new_lines, "")
+		-- Ensure today exists in our day list
+		local today_obj = nil
+		for _, day in ipairs(final_days) do
+			if day.date == current_date then
+				today_obj = day
+				break
+			end
 		end
 
-		table.insert(new_lines, "# " .. current_date)
-		for _, task in ipairs(unchecked_tasks) do
-			table.insert(new_lines, task)
+		if not today_obj then
+			today_obj = { date = current_date, lines = {} }
+			table.insert(final_days, today_obj)
 		end
 
-		vim.api.nvim_buf_set_lines(buf, 0, -1, false, new_lines)
-		vim.api.nvim_win_set_cursor(0, { #new_lines, 0 })
+		-- Prepend rolled-over tasks right under today's date
+		if #unchecked_tasks > 0 then
+			local updated_today_lines = {}
+			for _, t in ipairs(unchecked_tasks) do
+				table.insert(updated_today_lines, t)
+			end
+			for _, l in ipairs(today_obj.lines) do
+				table.insert(updated_today_lines, l)
+			end
+			today_obj.lines = updated_today_lines
+		end
 
-		vim.cmd("silent! write")
+		-- Render everything with Month Headers
+		local last_seen_month = nil
+		for _, day in ipairs(final_days) do
+			local has_content = false
+			for _, l in ipairs(day.lines) do
+				if string.match(l, "%S") then
+					has_content = true
+					break
+				end
+			end
+
+			if has_content or day.date == current_date then
+				local block_month = string.sub(day.date, 1, 7)
+
+				if block_month ~= last_seen_month then
+					if #new_lines > 0 and new_lines[#new_lines] ~= "" then
+						table.insert(new_lines, "")
+					end
+					table.insert(new_lines, "# " .. block_month)
+					last_seen_month = block_month
+				end
+
+				table.insert(new_lines, "")
+				table.insert(new_lines, "## " .. day.date)
+				for _, l in ipairs(day.lines) do
+					table.insert(new_lines, l)
+				end
+			end
+		end
+
+		-- Clean up redundant blank lines
+		local cleaned_lines = {}
+		for _, line in ipairs(new_lines) do
+			if line == "" and #cleaned_lines > 0 and cleaned_lines[#cleaned_lines] == "" then
+				-- skip duplicate blanks
+			else
+				table.insert(cleaned_lines, line)
+			end
+		end
+
+		while #cleaned_lines > 0 and cleaned_lines[1] == "" do
+			table.remove(cleaned_lines, 1)
+		end
+		while #cleaned_lines > 0 and cleaned_lines[#cleaned_lines] == "" do
+			table.remove(cleaned_lines)
+		end
+
+		-- STEP D: Diff check and Save
+		local changed = false
+		if #lines ~= #cleaned_lines then
+			changed = true
+		else
+			for k, v in ipairs(lines) do
+				if v ~= cleaned_lines[k] then
+					changed = true
+					break
+				end
+			end
+		end
+
+		if changed then
+			vim.api.nvim_buf_set_lines(buf, 0, -1, false, cleaned_lines)
+			vim.cmd("silent! write")
+		end
+
+		vim.api.nvim_win_set_cursor(0, { vim.api.nvim_buf_line_count(buf), 0 })
 	end,
 })

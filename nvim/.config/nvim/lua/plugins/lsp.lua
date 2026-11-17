@@ -119,6 +119,7 @@ vim.lsp.config["clangd"] = {
 		"--clang-tidy",
 		"--fallback-style=LLVM",
 	},
+
 }
 
 vim.lsp.config["basedpyright"] = {
@@ -151,8 +152,7 @@ vim.lsp.config["tinymist"] = {
     },
 }
 
-require("typst-preview").setup({open_cmd = "firefox %s -P default"})
-
+require("typst-preview").setup({open_cmd = "flatpak run app.zen_browser.zen %s -P default"})
 
 -- Setup mason-lspconfig using automatic handlers
 require("mason-lspconfig").setup({
@@ -167,7 +167,9 @@ require("mason-lspconfig").setup({
 		"lemminx",
 		"efm",
 		"ruff",
-    "tinymist"
+    "tinymist", 
+    "html", 
+    "ts_ls"
 	},
 	handlers = {
 		function(server_name)
@@ -204,6 +206,9 @@ local languages = {
 	json = { prettier },
 	xml = { prettier },
 	urdf = { prettier },
+  html = { prettier },
+  javascript = { prettier}, 
+  css = { prettier}
 }
 
 vim.lsp.config["efm"] = {
